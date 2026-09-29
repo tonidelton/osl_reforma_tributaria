@@ -1168,9 +1168,18 @@ function Footer({ showToast, navigateTo }: { showToast: (msg: string) => void; n
                 © 2026 OSL Contadores Associados. Todos os direitos reservados.
               </span>
             </div>
-            <p className="text-xs text-blue-300/60">
-              Conteúdo preparado pela equipe contábil da OSL
-            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+              <p className="text-xs text-blue-300/60">
+                Conteúdo preparado pela equipe contábil da OSL
+              </p>
+              <button
+                onClick={() => navigateTo('admin')}
+                className="text-xs text-blue-300/40 hover:text-blue-300/70 transition-colors"
+                title="Área administrativa"
+              >
+                Área Administrativa
+              </button>
+            </div>
           </div>
         </div>
       </div>
