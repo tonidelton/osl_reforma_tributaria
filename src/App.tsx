@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Wiki, { WikiAdmin } from './Wiki';
 
 // ============================================
 // COMPONENTE PRINCIPAL - Guia do Empresário
@@ -9,6 +10,37 @@ export default function App() {
   const [activeSection, setActiveSection] = useState('inicio');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; visible: boolean } | null>(null);
+  const [currentPage, setCurrentPage] = useState<'home' | 'wiki' | 'admin'>('home');
+
+  // Roteamento simples baseado em hash
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash === '#/wiki') {
+        setCurrentPage('wiki');
+      } else if (hash === '#/admin') {
+        setCurrentPage('admin');
+      } else {
+        setCurrentPage('home');
+      }
+    };
+
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Navegar para página
+  const navigateTo = (page: 'home' | 'wiki' | 'admin') => {
+    if (page === 'home') {
+      window.location.hash = '';
+    } else {
+      window.location.hash = `#/${page}`;
+    }
+    setCurrentPage(page);
+    setMobileMenuOpen(false);
+    window.scrollTo(0, 0);
+  };
 
   // Scroll spy - detecta seção ativa
   useEffect(() => {
@@ -75,6 +107,51 @@ export default function App() {
     }
   };
 
+  // Se estiver na página da Wiki
+  if (currentPage === 'wiki') {
+    return (
+      <div className="min-h-screen bg-surface font-sans text-gray-800">
+        {/* Navegação da Wiki */}
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <button
+                onClick={() => navigateTo('home')}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">OSL</span>
+                </div>
+                <span className="hidden sm:block text-sm font-semibold text-primary">Central de Ajuda</span>
+              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigateTo('home')}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary hover:bg-gray-50 rounded-lg transition-colors"
+                >
+                  ← Voltar ao Guia
+                </button>
+              </div>
+            </div>
+          </div>
+        </nav>
+        <div className="pt-16">
+          <Wiki />
+        </div>
+      </div>
+    );
+  }
+
+  // Se estiver na página Admin
+  if (currentPage === 'admin') {
+    return (
+      <div className="min-h-screen bg-surface font-sans text-gray-800">
+        <WikiAdmin />
+      </div>
+    );
+  }
+
+  // Página principal (home)
   return (
     <div className="min-h-screen bg-surface font-sans text-gray-800">
       {/* NAVEGAÇÃO FIXA */}
@@ -104,6 +181,16 @@ export default function App() {
                   {item.label}
                 </button>
               ))}
+              {/* Link para Wiki */}
+              <button
+                onClick={() => navigateTo('wiki')}
+                className="px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 text-gray-600 hover:text-primary hover:bg-gray-50 flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                Wiki
+              </button>
             </div>
 
             {/* Menu Mobile Toggle */}
@@ -141,6 +228,16 @@ export default function App() {
                   {item.label}
                 </button>
               ))}
+              {/* Link para Wiki Mobile */}
+              <button
+                onClick={() => navigateTo('wiki')}
+                className="block w-full text-left px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                Central de Ajuda (Wiki)
+              </button>
             </div>
           </div>
         )}
@@ -229,7 +326,7 @@ export default function App() {
       <FAQ />
 
       {/* SEÇÃO 6 — RODAPÉ / CONTATO */}
-      <Footer showToast={showToast} />
+      <Footer showToast={showToast} navigateTo={navigateTo} />
     </div>
   );
 }
@@ -861,7 +958,7 @@ function FAQ() {
 // ============================================
 // SEÇÃO 6 — RODAPÉ / CONTATO
 // ============================================
-function Footer({ showToast }: { showToast: (msg: string) => void }) {
+function Footer({ showToast, navigateTo }: { showToast: (msg: string) => void; navigateTo: (page: 'home' | 'wiki' | 'admin') => void }) {
   const [formData, setFormData] = useState({ nome: '', email: '', mensagem: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -900,10 +997,19 @@ function Footer({ showToast }: { showToast: (msg: string) => void }) {
               <p className="text-xl text-blue-200 mb-6">
                 Fale com a equipe da <strong className="text-white">OSL Contadores Associados</strong>
               </p>
-              <p className="text-blue-200 leading-relaxed mb-8">
+              <p className="text-blue-200 leading-relaxed mb-4">
                 Nossa equipe está pronta para ajudar você a navegar essas mudanças. 
                 Envie sua dúvida e retornaremos o mais breve possível.
               </p>
+              <button
+                onClick={() => navigateTo('wiki')}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white text-sm font-medium transition-all duration-200 mb-8"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                Acesse nossa Central de Ajuda (Wiki)
+              </button>
 
               {/* Informações de contato */}
               <div className="space-y-4">
