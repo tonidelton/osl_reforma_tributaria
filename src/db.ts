@@ -82,12 +82,17 @@ const initialItems: WikiItem[] = [
 export async function getAllItems(): Promise<WikiItem[]> {
   // Se Firebase não está configurado, usa localStorage
   if (!isFirebaseConfigured()) {
+    console.log('📦 Firebase não configurado, usando localStorage');
     return getItemsFromLocalStorage();
   }
 
   try {
-    const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
+    console.log('🔍 Buscando itens do Firebase...');
+    // Removido orderBy para não exigir índice
+    const q = collection(db, COLLECTION_NAME);
     const querySnapshot = await getDocs(q);
+    
+    console.log(`✅ ${querySnapshot.size} itens encontrados no Firebase`);
     
     const items: WikiItem[] = [];
     querySnapshot.forEach((doc) => {
@@ -103,10 +108,27 @@ export async function getAllItems(): Promise<WikiItem[]> {
       });
     });
     
+    // Ordena manualmente por data (mais recente primeiro)
+    items.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateB - dateA; // Ordem decrescente
+    });
+    
     return items;
-  } catch (error) {
-    console.error('Erro ao buscar itens do Firebase:', error);
+  } catch (error: any) {
+    console.error('❌ Erro ao buscar itens do Firebase:', error);
+    console.error('Detalhes do erro:', error.code, error.message);
+    
+    // Mensagem mais clara para o usuário
+    if (error.code === 'permission-denied') {
+      console.error('⚠️ Permissão negada. Verifique as regras de segurança do Firestore.');
+    } else if (error.code === 'unavailable') {
+      console.error('⚠️ Firestore não está disponível. Verifique se o banco foi criado no console.');
+    }
+    
     // Fallback para localStorage em caso de erro
+    console.log('📦 Usando fallback para localStorage');
     return getItemsFromLocalStorage();
   }
 }
@@ -117,10 +139,14 @@ export async function getAllItems(): Promise<WikiItem[]> {
 export async function addItem(item: Omit<WikiItem, 'id'>): Promise<WikiItem> {
   // Se Firebase não está configurado, usa localStorage
   if (!isFirebaseConfigured()) {
+    console.log('📦 Firebase não configurado, salvando no localStorage');
     return addItemToLocalStorage(item);
   }
 
   try {
+    console.log('💾 Salvando novo item no Firebase...');
+    console.log('Dados:', item);
+    
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
       question: item.question,
       answer: item.answer,
@@ -128,12 +154,27 @@ export async function addItem(item: Omit<WikiItem, 'id'>): Promise<WikiItem> {
       createdAt: new Date(item.createdAt)
     });
     
+    console.log('✅ Item salvo com sucesso! ID:', docRef.id);
+    
     return {
       id: docRef.id,
       ...item
     };
-  } catch (error) {
-    console.error('Erro ao adicionar item no Firebase:', error);
+  } catch (error: any) {
+    console.error('❌ Erro ao adicionar item no Firebase:', error);
+    console.error('Detalhes:', error.code, error.message);
+    
+    // Mensagem mais clara para o usuário
+    if (error.code === 'permission-denied') {
+      console.error('⚠️ Permissão negada. Verifique as regras de segurança do Firestore.');
+      alert('Erro: Permissão negada. Verifique as regras de segurança do Firebase Console.');
+    } else if (error.code === 'unavailable') {
+      console.error('⚠️ Firestore não está disponível. Verifique se o banco foi criado.');
+      alert('Erro: Firebase não disponível. Verifique se o Firestore foi criado no console.');
+    }
+    
+    // Fallback para localStorage
+    console.log('📦 Salvando no localStorage como fallback');
     return addItemToLocalStorage(item);
   }
 }
@@ -144,11 +185,13 @@ export async function addItem(item: Omit<WikiItem, 'id'>): Promise<WikiItem> {
 export async function updateItem(id: string, item: Omit<WikiItem, 'id'>): Promise<void> {
   // Se Firebase não está configurado, usa localStorage
   if (!isFirebaseConfigured()) {
+    console.log('📦 Firebase não configurado, atualizando no localStorage');
     updateItemInLocalStorage(id, item);
     return;
   }
 
   try {
+    console.log('✏️ Atualizando item no Firebase, ID:', id);
     const docRef = doc(db, COLLECTION_NAME, id);
     await updateDoc(docRef, {
       question: item.question,
@@ -156,8 +199,15 @@ export async function updateItem(id: string, item: Omit<WikiItem, 'id'>): Promis
       category: item.category,
       createdAt: new Date(item.createdAt)
     });
-  } catch (error) {
-    console.error('Erro ao atualizar item no Firebase:', error);
+    console.log('✅ Item atualizado com sucesso!');
+  } catch (error: any) {
+    console.error('❌ Erro ao atualizar item no Firebase:', error);
+    console.error('Detalhes:', error.code, error.message);
+    
+    if (error.code === 'permission-denied') {
+      alert('Erro: Permissão negada. Verifique as regras de segurança do Firebase Console.');
+    }
+    
     updateItemInLocalStorage(id, item);
   }
 }
@@ -168,16 +218,57 @@ export async function updateItem(id: string, item: Omit<WikiItem, 'id'>): Promis
 export async function deleteItem(id: string): Promise<void> {
   // Se Firebase não está configurado, usa localStorage
   if (!isFirebaseConfigured()) {
+    console.log('📦 Firebase não configurado, deletando do localStorage');
     deleteItemFromLocalStorage(id);
     return;
   }
 
   try {
+    console.log('🗑️ Deletando item do Firebase, ID:', id);
     const docRef = doc(db, COLLECTION_NAME, id);
     await deleteDoc(docRef);
-  } catch (error) {
-    console.error('Erro ao deletar item no Firebase:', error);
+    console.log('✅ Item deletado com sucesso!');
+  } catch (error: any) {
+    console.error('❌ Erro ao deletar item no Firebase:', error);
+    console.error('Detalhes:', error.code, error.message);
+    
+    if (error.code === 'permission-denied') {
+      alert('Erro: Permissão negada. Verifique as regras de segurança do Firebase Console.');
+    }
+    
     deleteItemFromLocalStorage(id);
+  }
+}
+
+/**
+ * Testa a conexão com o Firebase
+ */
+export async function testFirebaseConnection(): Promise<{ success: boolean; message: string }> {
+  if (!isFirebaseConfigured()) {
+    return { success: false, message: 'Firebase não configurado' };
+  }
+
+  try {
+    console.log('🧪 Testando conexão com Firebase...');
+    const q = collection(db, COLLECTION_NAME);
+    await getDocs(q);
+    console.log('✅ Conexão com Firebase funcionando!');
+    return { success: true, message: 'Conexão OK' };
+  } catch (error: any) {
+    console.error('❌ Erro na conexão com Firebase:', error);
+    
+    let message = 'Erro desconhecido';
+    if (error.code === 'permission-denied') {
+      message = 'Permissão negada. Verifique as regras de segurança do Firestore.';
+    } else if (error.code === 'unavailable') {
+      message = 'Firestore não disponível. Verifique se o banco foi criado no console.';
+    } else if (error.code === 'not-found') {
+      message = 'Coleção não encontrada. O banco pode estar vazio ou não foi criado.';
+    } else {
+      message = error.message || 'Erro ao conectar com Firebase';
+    }
+    
+    return { success: false, message };
   }
 }
 
