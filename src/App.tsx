@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Wiki, { WikiAdmin } from './Wiki';
+import Calculadora from './Calculadora';
 
 // ============================================
 // COMPONENTE PRINCIPAL - Guia do Empresário
@@ -17,7 +18,7 @@ export default function App() {
   const [activeSection, setActiveSection] = useState('inicio');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; visible: boolean } | null>(null);
-  const [currentPage, setCurrentPage] = useState<'home' | 'wiki' | 'admin'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'wiki' | 'admin' | 'calculadora'>('home');
 
   // Roteamento simples baseado em hash
   useEffect(() => {
@@ -27,6 +28,8 @@ export default function App() {
         setCurrentPage('wiki');
       } else if (hash === '#/admin') {
         setCurrentPage('admin');
+      } else if (hash === '#/calculadora') {
+        setCurrentPage('calculadora');
       } else {
         setCurrentPage('home');
       }
@@ -37,7 +40,7 @@ export default function App() {
   }, []);
 
   // Navegar para página
-  const navigateTo = (page: 'home' | 'wiki' | 'admin') => {
+  const navigateTo = (page: 'home' | 'wiki' | 'admin' | 'calculadora') => {
     if (page === 'home') {
       window.location.hash = '';
     } else {
@@ -142,6 +145,32 @@ export default function App() {
     return <div className="min-h-screen bg-surface font-sans text-gray-800"><WikiAdmin /></div>;
   }
 
+  // Se estiver na página da Calculadora
+  if (currentPage === 'calculadora') {
+    return (
+      <div className="min-h-screen bg-surface font-sans text-gray-800">
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <button onClick={() => navigateTo('home')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">OSL</span>
+                </div>
+                <span className="hidden sm:block text-sm font-semibold text-primary">Calculadora de Preço</span>
+              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => navigateTo('home')} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary hover:bg-gray-50 rounded-lg transition-colors">
+                  ← Voltar ao Guia
+                </button>
+              </div>
+            </div>
+          </div>
+        </nav>
+        <div className="pt-16"><Calculadora /></div>
+      </div>
+    );
+  }
+
   // Página principal
   return (
     <div className="min-h-screen bg-surface font-sans text-gray-800">
@@ -169,6 +198,12 @@ export default function App() {
                   {item.label}
                 </button>
               ))}
+              <button onClick={() => navigateTo('calculadora')} className="px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-200 text-accent-dark hover:bg-accent/10 flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                Calculadora
+              </button>
               <button onClick={() => navigateTo('wiki')} className="px-2.5 py-2 text-xs font-medium rounded-lg transition-all duration-200 text-gray-600 hover:text-primary hover:bg-gray-50 flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -203,6 +238,12 @@ export default function App() {
                   {item.label}
                 </button>
               ))}
+              <button onClick={() => navigateTo('calculadora')} className="block w-full text-left px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-accent-dark hover:bg-accent/10 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                Calculadora de Preço
+              </button>
               <button onClick={() => navigateTo('wiki')} className="block w-full text-left px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-gray-600 hover:bg-gray-50 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -236,7 +277,7 @@ export default function App() {
       <Cronograma />
 
       {/* NOVA SEÇÃO — PREÇO DE VENDA */}
-      <PrecoVenda />
+      <PrecoVenda navigateTo={navigateTo} />
 
       {/* NOVA SEÇÃO — APURAÇÃO ASSISTIDA */}
       <ApuracaoAssistida />
@@ -271,7 +312,7 @@ export default function App() {
 // ============================================
 // HERO
 // ============================================
-function HeroSection({ navigateTo, scrollTo }: { navigateTo: (p: 'home' | 'wiki' | 'admin') => void; scrollTo: (id: string) => void }) {
+function HeroSection({ navigateTo, scrollTo }: { navigateTo: (p: 'home' | 'wiki' | 'admin' | 'calculadora') => void; scrollTo: (id: string) => void }) {
   return (
     <section id="inicio" className="pt-24 pb-16 sm:pt-32 sm:pb-24 bg-gradient-to-br from-primary via-primary-light to-primary-dark relative overflow-hidden">
       <div className="absolute inset-0 opacity-10">
@@ -297,6 +338,9 @@ function HeroSection({ navigateTo, scrollTo }: { navigateTo: (p: 'home' | 'wiki'
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button onClick={() => scrollTo('reforma')} className="px-6 py-3 bg-accent hover:bg-accent-dark text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">
               Entender a Reforma
+            </button>
+            <button onClick={() => navigateTo('calculadora')} className="px-6 py-3 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white font-semibold rounded-xl border border-white/20 transition-all duration-200 flex items-center justify-center gap-2">
+              <span className="text-xl">🧮</span> Calcular Preço
             </button>
             <button onClick={() => navigateTo('wiki')} className="px-6 py-3 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white font-semibold rounded-xl border border-white/20 transition-all duration-200">
               Acessar a Wiki
@@ -474,7 +518,7 @@ function Cronograma() {
 // ============================================
 // NOVA SEÇÃO — PREÇO DE VENDA
 // ============================================
-function PrecoVenda() {
+function PrecoVenda({ navigateTo }: { navigateTo: (p: 'home' | 'wiki' | 'admin' | 'calculadora') => void }) {
   return (
     <section id="preco" className="py-16 sm:py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -577,7 +621,7 @@ function PrecoVenda() {
         </div>
 
         {/* Recomendação prática */}
-        <div className="reveal max-w-4xl mx-auto">
+        <div className="reveal max-w-4xl mx-auto mb-8">
           <div className="bg-accent/10 border border-accent/30 rounded-2xl p-6 sm:p-8">
             <h3 className="text-xl font-bold text-primary mb-3 flex items-center gap-2">
               <span className="text-2xl">🎯</span> Recomendação prática
@@ -591,6 +635,28 @@ function PrecoVenda() {
               Isso exige participação conjunta das áreas <strong>comercial, financeira, controladoria, 
               compras e planejamento</strong>. Não é mais uma decisão isolada — é estratégica.
             </p>
+          </div>
+        </div>
+
+        {/* CTA para calculadora */}
+        <div className="reveal max-w-4xl mx-auto">
+          <div className="bg-gradient-to-r from-primary to-primary-light rounded-2xl p-6 sm:p-8 text-white text-center">
+            <h3 className="text-xl font-bold mb-2 flex items-center justify-center gap-2">
+              <span className="text-2xl">🧮</span> Quer simular agora?
+            </h3>
+            <p className="text-blue-100 mb-5 text-sm">
+              Use nossa calculadora para converter seu preço atual (com PIS/COFINS "por dentro") 
+              para o novo modelo com CBS "por fora" e ver o impacto real na sua margem.
+            </p>
+            <button
+              onClick={() => navigateTo('calculadora')}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-dark text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              Abrir Calculadora de Preço
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -962,7 +1028,7 @@ function SetorCompras() {
 // ============================================
 // NOVA SEÇÃO — SPLIT PAYMENT
 // ============================================
-function SplitPayment({ navigateTo }: { navigateTo: (p: 'home' | 'wiki' | 'admin') => void }) {
+function SplitPayment({ navigateTo }: { navigateTo: (p: 'home' | 'wiki' | 'admin' | 'calculadora') => void }) {
   return (
     <section id="split" className="py-16 sm:py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1340,7 +1406,7 @@ function FAQ() {
 // ============================================
 // SEÇÃO — RODAPÉ
 // ============================================
-function Footer({ showToast, navigateTo }: { showToast: (msg: string) => void; navigateTo: (p: 'home' | 'wiki' | 'admin') => void }) {
+function Footer({ showToast, navigateTo }: { showToast: (msg: string) => void; navigateTo: (p: 'home' | 'wiki' | 'admin' | 'calculadora') => void }) {
   const [formData, setFormData] = useState({ nome: '', email: '', mensagem: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -1378,12 +1444,18 @@ function Footer({ showToast, navigateTo }: { showToast: (msg: string) => void; n
               <p className="text-blue-200 leading-relaxed mb-4">
                 Nossa equipe está pronta para ajudar você a navegar essas mudanças.
               </p>
-              <button onClick={() => navigateTo('wiki')} className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white text-sm font-medium transition-all duration-200 mb-8">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-                Acesse nossa Central de Ajuda (Wiki)
-              </button>
+              <div className="flex flex-wrap gap-3 mb-8">
+                <button onClick={() => navigateTo('calculadora')} className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent/30 hover:bg-accent/40 border border-accent/40 rounded-xl text-white text-sm font-medium transition-all duration-200">
+                  <span className="text-lg">🧮</span>
+                  Calculadora de Preço
+                </button>
+                <button onClick={() => navigateTo('wiki')} className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white text-sm font-medium transition-all duration-200">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  Central de Ajuda (Wiki)
+                </button>
+              </div>
 
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
