@@ -6,16 +6,8 @@ import * as XLSX from 'xlsx';
 // Importa perguntas e respostas de planilhas
 // ============================================
 
-interface WikiItem {
-  id: string;
-  question: string;
-  answer: string;
-  category: string;
-  createdAt: string;
-}
-
 interface ImportadorExcelProps {
-  onImport: (items: WikiItem[], mode: 'replace' | 'append') => void;
+  onImport: (items: Array<{ question: string; answer: string; category: string; createdAt: string }>, mode: 'replace' | 'append') => void;
   onClose: () => void;
 }
 
@@ -115,8 +107,7 @@ export default function ImportadorExcel({ onImport, onClose }: ImportadorExcelPr
   // Confirmar importação
   const confirmarImportacao = () => {
     const itensValidos = itensImportados.filter(i => i.valido);
-    const itensConvertidos: WikiItem[] = itensValidos.map((item, index) => ({
-      id: `import-${Date.now()}-${index}`,
+    const itensConvertidos = itensValidos.map((item) => ({
       question: item.question,
       answer: item.answer,
       category: item.category,

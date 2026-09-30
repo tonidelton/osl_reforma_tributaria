@@ -1,77 +1,39 @@
 import { useState, useEffect } from 'react';
 import ImportadorExcel from './ImportadorExcel';
 import * as XLSX from 'xlsx';
+import { WikiItem, getAllItems, addItem, updateItem, deleteItem, importItems, getDatabaseType } from './db';
 
 // ============================================
 // WIKI - Perguntas e Respostas
 // Página pública para clientes
 // ============================================
 
-interface WikiItem {
-  id: string;
-  question: string;
-  answer: string;
-  category: string;
-  createdAt: string;
-}
-
-const STORAGE_KEY = 'osl-wiki-items';
-const ADMIN_PASSWORD = 'osl2026'; // Senha simples para demonstração
-
-// Dados iniciais de exemplo
-const initialItems: WikiItem[] = [
-  {
-    id: '1',
-    question: 'Como emitir nota fiscal com os campos de IBS e CBS?',
-    answer: 'Para emitir notas fiscais com os campos de IBS e CBS, você precisa verificar se seu sistema emissor de notas está atualizado. A partir de 03/08/2026, esses campos são obrigatórios para empresas do regime regular. Entre em contato com o fornecedor do seu sistema ou com nossa equipe para verificar a compatibilidade.',
-    category: 'Reforma Tributária',
-    createdAt: '2026-09-01'
-  },
-  {
-    id: '2',
-    question: 'O que é o PIX Automático e como aderir?',
-    answer: 'O PIX Automático é uma modalidade de pagamento semelhante ao débito automático, ideal para cobranças recorrentes como mensalidades e assinaturas. Para aderir, você precisa configurar essa modalidade no seu banco ou plataforma de pagamento. Se sua empresa faz cobrança recorrente, essa modalidade é obrigatória.',
-    category: 'PIX',
-    createdAt: '2026-09-01'
-  },
-  {
-    id: '3',
-    question: 'Preciso pagar imposto novo em 2026?',
-    answer: 'Não. 2026 é uma fase de teste com alíquotas experimentais (CBS 0,9% + IBS 0,1%, totalizando 1%). O recolhimento fica dispensado para quem cumpre as obrigações acessórias. Na prática, é o ano de adaptar sistemas e notas fiscais, sem pagamento efetivo dos novos tributos.',
-    category: 'Reforma Tributária',
-    createdAt: '2026-09-01'
-  },
-  {
-    id: '4',
-    question: 'Como funciona o MED 2.0 do PIX?',
-    answer: 'O MED 2.0 (Mecanismo Especial de Devolução) é um sistema de segurança do PIX que permite bloquear valores em caso de suspeita de fraude. Se você identificar uma transação suspeita, pode solicitar o bloqueio através do seu banco. Isso protege tanto quem enviou quanto quem recebeu o pagamento.',
-    category: 'PIX',
-    createdAt: '2026-09-01'
-  }
-];
-
 export default function Wiki() {
-  const [items, setItems] = useState<WikiItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return initialItems;
-  });
-
+  const [items, setItems] = useState<WikiItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
+  const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
-  // Salvar no localStorage quando items mudar
+  // Carrega os itens do banco de dados
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    } catch {}
-  }, [items]);
+    loadItems();
+  }, []);
 
-  // Filtrar itens
-  const filteredItems = items.filter((item) => {
+  const loadItems = async () => {
+    setLoading(true);
+    try {
+      const data = await getAllItems();
+      setItems(data);
+    } catch (error) {
+      console.error('Erro ao carregar itens:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filtra itens baseado na busca e categoria
+  const filteredItems = items.filter(item => {
     const matchesSearch = 
       item.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.answer.toLowerCase().includes(searchTerm.toLowerCase());
@@ -79,7 +41,7 @@ export default function Wiki() {
     return matchesSearch && matchesCategory;
   });
 
-  // Obter categorias únicas
+  // Obtém categorias únicas
   const categories = ['Todas', ...Array.from(new Set(items.map(item => item.category)))];
 
   return (
@@ -120,6 +82,14 @@ export default function Wiki() {
 
       {/* Conteúdo */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Indicador de banco de dados */}
+        <div className="text-center mb-6">
+          <span className="inline-flex items-center gap-2 px-3 py-1 bg-white rounded-full text-xs font-medium text-gray-600 shadow-sm">
+            <span className={`w-2 h-2 rounded-full ${getDatabaseType() === 'firebase' ? 'bg-green-500' : 'bg-amber-500'}`}></span>
+            {getDatabaseType() === 'firebase' ? 'Banco de dados: Firebase' : 'Modo demonstração (localStorage)'}
+          </span>
+        </div>
+
         {/* Filtros de categoria */}
         <div className="flex flex-wrap gap-2 mb-8 justify-center">
           {categories.map((category) => (
@@ -137,8 +107,13 @@ export default function Wiki() {
           ))}
         </div>
 
-        {/* Resultados */}
-        {filteredItems.length === 0 ? (
+        {/* Loading */}
+        {loading ? (
+          <div className="text-center py-16">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+            <p className="text-gray-600">Carregando perguntas...</p>
+          </div>
+        ) : filteredItems.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🔍</div>
             <h3 className="text-xl font-semibold text-gray-700 mb-2">
@@ -230,18 +205,14 @@ export default function Wiki() {
 // ADMIN - Área Administrativa da Wiki
 // ============================================
 
+const ADMIN_PASSWORD = 'osl2026'; // Senha simples para demonstração
+
 export function WikiAdmin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [items, setItems] = useState<WikiItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return initialItems;
-  });
-
+  const [items, setItems] = useState<WikiItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<WikiItem | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showImportador, setShowImportador] = useState(false);
@@ -251,23 +222,23 @@ export function WikiAdmin() {
     category: ''
   });
 
-  // Função de importação via Excel
-  const handleImportacao = (novosItens: WikiItem[], mode: 'replace' | 'append') => {
-    let itensFinais: WikiItem[];
-    
-    if (mode === 'replace') {
-      itensFinais = novosItens;
-    } else {
-      // Append: adiciona os novos itens no início
-      itensFinais = [...novosItens, ...items];
+  // Carrega os itens do banco de dados
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadItems();
     }
-    
-    setItems(itensFinais);
-    
-    // Salvar no localStorage
+  }, [isAuthenticated]);
+
+  const loadItems = async () => {
+    setLoading(true);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(itensFinais));
-    } catch {}
+      const data = await getAllItems();
+      setItems(data);
+    } catch (error) {
+      console.error('Erro ao carregar itens:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Login
@@ -281,39 +252,51 @@ export function WikiAdmin() {
     }
   };
 
-  // Salvar item
-  const handleSave = () => {
+  // Função de importação via Excel
+  const handleImportacao = async (novosItens: Array<{ question: string; answer: string; category: string; createdAt: string }>, mode: 'replace' | 'append') => {
+    try {
+      await importItems(novosItens, mode);
+      await loadItems(); // Recarrega os itens
+    } catch (error) {
+      console.error('Erro ao importar itens:', error);
+      alert('Erro ao importar itens. Tente novamente.');
+    }
+  };
+
+  // Salvar item (criar ou editar)
+  const handleSave = async () => {
     if (!formData.question.trim() || !formData.answer.trim() || !formData.category.trim()) {
       alert('Preencha todos os campos');
       return;
     }
 
-    if (editingItem) {
-      // Editar
-      setItems(items.map(item => 
-        item.id === editingItem.id 
-          ? { ...item, ...formData }
-          : item
-      ));
-    } else {
-      // Criar novo
-      const newItem: WikiItem = {
-        id: Date.now().toString(),
-        ...formData,
-        createdAt: new Date().toISOString().split('T')[0]
-      };
-      setItems([newItem, ...items]);
-    }
-
-    // Salvar no localStorage
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([...items]));
-    } catch {}
+      if (editingItem) {
+        // Editar
+        await updateItem(editingItem.id, {
+          question: formData.question,
+          answer: formData.answer,
+          category: formData.category,
+          createdAt: editingItem.createdAt
+        });
+      } else {
+        // Criar novo
+        await addItem({
+          question: formData.question,
+          answer: formData.answer,
+          category: formData.category,
+          createdAt: new Date().toISOString().split('T')[0]
+        });
+      }
 
-    // Reset form
-    setFormData({ question: '', answer: '', category: '' });
-    setEditingItem(null);
-    setShowForm(false);
+      await loadItems(); // Recarrega os itens
+      setFormData({ question: '', answer: '', category: '' });
+      setEditingItem(null);
+      setShowForm(false);
+    } catch (error) {
+      console.error('Erro ao salvar item:', error);
+      alert('Erro ao salvar item. Tente novamente.');
+    }
   };
 
   // Editar item
@@ -328,13 +311,15 @@ export function WikiAdmin() {
   };
 
   // Deletar item
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja deletar esta pergunta?')) {
-      const newItems = items.filter(item => item.id !== id);
-      setItems(newItems);
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(newItems));
-      } catch {}
+        await deleteItem(id);
+        await loadItems(); // Recarrega os itens
+      } catch (error) {
+        console.error('Erro ao deletar item:', error);
+        alert('Erro ao deletar item. Tente novamente.');
+      }
     }
   };
 
@@ -408,6 +393,12 @@ export function WikiAdmin() {
             <div>
               <h1 className="text-2xl font-bold">Gerenciar Wiki</h1>
               <p className="text-blue-200 text-sm mt-1">Área administrativa</p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className={`w-2 h-2 rounded-full ${getDatabaseType() === 'firebase' ? 'bg-green-400' : 'bg-amber-400'}`}></span>
+                <span className="text-xs text-blue-200">
+                  {getDatabaseType() === 'firebase' ? 'Conectado ao Firebase' : 'Modo demonstração (localStorage)'}
+                </span>
+              </div>
             </div>
             <button
               onClick={() => setIsAuthenticated(false)}
@@ -543,19 +534,24 @@ export function WikiAdmin() {
         )}
 
         {/* Lista de perguntas */}
-        <div className="space-y-4">
-          {items.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl">
-              <div className="text-6xl mb-4">📝</div>
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                Nenhuma pergunta cadastrada
-              </h3>
-              <p className="text-gray-500">
-                Clique em "Nova Pergunta" para começar
-              </p>
-            </div>
-          ) : (
-            items.map((item) => (
+        {loading ? (
+          <div className="text-center py-16 bg-white rounded-2xl">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+            <p className="text-gray-600">Carregando perguntas...</p>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl">
+            <div className="text-6xl mb-4">📝</div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+              Nenhuma pergunta cadastrada
+            </h3>
+            <p className="text-gray-500">
+              Clique em "Nova Pergunta" para começar
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {items.map((item) => (
               <div
                 key={item.id}
                 className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
@@ -599,9 +595,9 @@ export function WikiAdmin() {
                   </div>
                 </div>
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
