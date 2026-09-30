@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import ImportadorExcel from './ImportadorExcel';
+import * as XLSX from 'xlsx';
 
 // ============================================
 // WIKI - Perguntas e Respostas
@@ -242,11 +244,31 @@ export function WikiAdmin() {
 
   const [editingItem, setEditingItem] = useState<WikiItem | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showImportador, setShowImportador] = useState(false);
   const [formData, setFormData] = useState({
     question: '',
     answer: '',
     category: ''
   });
+
+  // Função de importação via Excel
+  const handleImportacao = (novosItens: WikiItem[], mode: 'replace' | 'append') => {
+    let itensFinais: WikiItem[];
+    
+    if (mode === 'replace') {
+      itensFinais = novosItens;
+    } else {
+      // Append: adiciona os novos itens no início
+      itensFinais = [...novosItens, ...items];
+    }
+    
+    setItems(itensFinais);
+    
+    // Salvar no localStorage
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(itensFinais));
+    } catch {}
+  };
 
   // Login
   const handleLogin = (e: React.FormEvent) => {
@@ -399,8 +421,8 @@ export function WikiAdmin() {
 
       {/* Conteúdo */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Botão adicionar */}
-        <div className="mb-6">
+        {/* Botões de ação */}
+        <div className="mb-6 flex flex-wrap gap-3">
           <button
             onClick={() => {
               setEditingItem(null);
@@ -414,7 +436,46 @@ export function WikiAdmin() {
             </svg>
             Nova Pergunta
           </button>
+          <button
+            onClick={() => setShowImportador(true)}
+            className="px-6 py-3 bg-primary hover:bg-primary-light text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Importar do Excel
+          </button>
+          <button
+            onClick={() => {
+              // Exportar todos os itens para Excel
+              const data = items.map(item => ({
+                Pergunta: item.question,
+                Resposta: item.answer,
+                Categoria: item.category,
+                'Data de criação': item.createdAt
+              }));
+              const ws = XLSX.utils.json_to_sheet(data);
+              const wb = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(wb, ws, 'Perguntas');
+              ws['!cols'] = [{ wch: 50 }, { wch: 80 }, { wch: 25 }, { wch: 15 }];
+              XLSX.writeFile(wb, `wiki-osl-${new Date().toISOString().split('T')[0]}.xlsx`);
+            }}
+            className="px-6 py-3 bg-white hover:bg-gray-50 text-primary font-semibold rounded-xl shadow-md hover:shadow-lg border-2 border-primary transition-all duration-200 flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Exportar para Excel
+          </button>
         </div>
+
+        {/* Modal de importação */}
+        {showImportador && (
+          <ImportadorExcel
+            onImport={handleImportacao}
+            onClose={() => setShowImportador(false)}
+          />
+        )}
 
         {/* Formulário */}
         {showForm && (
